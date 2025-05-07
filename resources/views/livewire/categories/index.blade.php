@@ -1,14 +1,18 @@
 <?php
 
+use App\Models\Category;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
-new class extends Component {
+new
+#[Title('Categories')] 
+class extends Component {
     
     use Toast, WithPagination;
 
@@ -18,7 +22,7 @@ new class extends Component {
 
     public array $sortBy = ['column' => 'name', 'direction' => 'asc'];
 
-    public $userId = null;
+    public $categoryId = null;
 
     public $formModal = false;
     
@@ -27,31 +31,31 @@ new class extends Component {
     #[On('close-modal')]
     public function closeModal(): void
     {
-        $this->reset(['userId', 'formModal', 'modalKey']);
+        $this->reset(['categoryId', 'formModal', 'modalKey']);
         $this->formModal = false;
     }
 
-    // open add user modal
+    // open add modal
     public function add(): void
     {
         $this->modalKey = uniqid();
-        $this->userId = null;
+        $this->categoryId = null;
         $this->formModal = true;
     }
 
-    // open edit user modal
+    // open edit modal
     public function edit($id): void
     {
-        $this->userId = $id;
+        $this->categoryId = $id;
         $this->modalKey = uniqid();
         $this->formModal = true;
     }
 
-    // delete user
-    public function delete(User $user): void
+    // delete
+    public function delete(Category $category): void
     {
-        $user->delete();
-        $this->success("User $user->name success deleted", position: 'bottom-right');
+        $category->delete();
+        $this->success("Category $category->name success deleted", position: 'bottom-right');
     }
 
     // Table headers
@@ -60,17 +64,15 @@ new class extends Component {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
             ['key' => 'name', 'label' => 'Name'],
-            ['key' => 'username', 'label' => 'Username'],
-            ['key' => 'role', 'label' => 'Role'],
             ['key' => 'created_at', 'label' => 'Created At', 'format' => ['date', 'd/m/Y'], 'class' => 'w-42'],
             ['key' => 'updated_at', 'label' => 'Updated At', 'format' => ['date', 'd/m/Y'], 'class' => 'w-42'],
         ];
     }
 
     // get data collection
-    public function users(): LengthAwarePaginator
+    public function categories(): LengthAwarePaginator
     {
-        return User::query()
+        return Category::query()
             ->when($this->search, fn(Builder $q) => $q->where('name', 'like', "%$this->search%"))
             ->orderBy(...array_values($this->sortBy))
             ->paginate(10);
@@ -79,7 +81,7 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'users' => $this->users(),
+            'categories' => $this->categories(),
             'headers' => $this->headers()
         ];
     }
@@ -87,7 +89,7 @@ new class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Users" separator progress-indicator>
+    <x-header title="Categories" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
@@ -100,22 +102,20 @@ new class extends Component {
     <x-card shadow>
         <x-table 
             :headers="$headers" 
-            :rows="$users" 
+            :rows="$categories" 
             :sort-by="$sortBy"
             @row-click="$wire.edit($event.detail.id)"
             with-pagination>
-            @scope('actions', $user)
-                @if ($user->username != 'admin')
-                    <x-button icon="o-trash" wire:click="delete({{ $user['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-error" />
-                @endif
+            @scope('actions', $item)
+                <x-button icon="o-trash" wire:click="delete({{ $item['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-error" />
             @endscope
         </x-table>
     </x-card>
 
     <!-- FORM MODAL -->
     <x-modal :key="$modalKey" wire:model="formModal"
-        title="{{ $userId ? 'Form Edit User' : 'Form User' }}"
+        title="{{ $categoryId ? 'Form Edit Category' : 'Form Category' }}"
         class="backdrop-blur">
-        @livewire('users.form', ['userId' => $userId], key($modalKey))
+        @livewire('categories.form', ['categoryId' => $categoryId], key($modalKey))
     </x-modal>
 </div>
